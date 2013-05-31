@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 #
 # Copyright (C) 2013 The CyanogenMod Project
 #
@@ -19,6 +18,8 @@
 #
 # Run repopick.py -h for a description of this utility.
 #
+
+from __future__ import print_function
 
 import sys
 import json
@@ -71,22 +72,22 @@ if args.start_branch == None and args.abandon_first:
 
 def execute_cmd(cmd):
     if args.verbose:
-        print 'Executing: ' + cmd
+        print('Executing: ' + cmd)
     cmd = cmd.split(' ')
     subprocess.call(cmd)
 
 # If --abandon-first is given, abandon the branch before starting
 if args.abandon_first:
     if not args.quiet:
-        print 'Abandoning branch: %s' % args.start_branch[0]
+        print('Abandoning branch: %s' % args.start_branch[0])
     cmd = '%s abandon %s' % (repo_bin, args.start_branch[0])
     execute_cmd(cmd)
     if not args.quiet:
-        print ''
+        print('')
 
 for change in args.gerrit_number:
     if not args.quiet:
-        print 'Applying Gerrit number %s ...' % change
+        print('Applying Gerrit number %s ...' % change)
 
     # Fetch information about the change from Gerrit's REST API
     #
@@ -95,13 +96,13 @@ for change in args.gerrit_number:
     #   [ ... valid JSON ... ]
     url = 'http://review.cyanogenmod.com/changes/?q=%s&o=CURRENT_REVISION&o=CURRENT_COMMIT&pp=0' % change
     if args.verbose:
-        print 'Fetching from: %s\n' % url
+        print('Fetching from: %s\n' % url)
     f = urllib.request.urlopen(url)
     d = f.read().decode()
 
     # Parse the result
     if args.verbose:
-        print 'Result from request:\n' + d
+        print('Result from request:\n' + d)
     d = d.split('\n')[1]
     d = re.sub(r'\[(.*)\]', r'\1', d)
     data = json.loads(d)
@@ -150,15 +151,15 @@ for change in args.gerrit_number:
 
     # Print out some useful info
     if not args.quiet:
-        print '--> subject:       "%s"' % subject
-        print '--> project path:  %s' % project_path
-        print '--> gerrit number: %d (patch %d)' % (gerrit_number, patch_number)
-        print '--> author:        %s <%s> %s' % (author_name, author_email, author_date)
-        print '--> committer:     %s <%s> %s' % (committer_name, committer_email, committer_date)
+        print('--> subject:       "%s"' % subject)
+        print('--> project path:  %s' % project_path)
+        print('--> gerrit number: %d (patch %d)' % (gerrit_number, patch_number))
+        print('--> author:        %s <%s> %s' % (author_name, author_email, author_date))
+        print('--> committer:     %s <%s> %s' % (committer_name, committer_email, committer_date))
 
     # Perform the cherry-pick
     cmd = 'cd %s && git fetch %s %s && git cherry-pick FETCH_HEAD' % (project_path, fetch_url, fetch_ref)
     execute_cmd(cmd)
     if not args.quiet:
-        print ''
+        print('')
 

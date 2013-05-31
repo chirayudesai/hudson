@@ -49,7 +49,7 @@ parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpForm
     repopick.py is a utility to simplify the process of cherry picking
     patches from CyanogenMod's Gerrit instance.
 
-    Given a list of Gerrit numbers, repopick will cd into the project path
+    Given a list of change numbers, repopick will cd into the project path
     and cherry pick the latest patch available.
 
     With the --start-branch argument, the user can specify that a branch
@@ -60,7 +60,7 @@ parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpForm
     The --abandon-first argument, when used in conjuction with the
     --start-branch option, will cause repopick to abandon the specified
     branch in all repos first before performing any cherry picks.'''))
-parser.add_argument('gerrit_number', nargs='+', help='gerrit number to cherry pick')
+parser.add_argument('change_number', nargs='+', help='change number to cherry pick')
 parser.add_argument('--ignore-missing', action='store_true', help='do not error out if a patch applies to a missing directory')
 parser.add_argument('--start-branch', nargs=1, help='start the specified branch before cherry picking')
 parser.add_argument('--abandon-first', action='store_true', help='before cherry picking, abandon the branch specified in --start-branch')
@@ -80,14 +80,13 @@ def execute_cmd(cmd):
 if args.abandon_first:
     if not args.quiet:
         print('Abandoning branch: %s' % args.start_branch[0])
-    cmd = '%s abandon %s' % (repo_bin, args.start_branch[0])
-    execute_cmd(cmd)
+    os.system('%s abandon %s' % (repo_bin, args.start_branch[0]))
     if not args.quiet:
         print('')
 
-for change in args.gerrit_number:
+for change in args.change_number:
     if not args.quiet:
-        print('Applying Gerrit number %s ...' % change)
+        print('Applying change number %s ...' % change)
 
     # Fetch information about the change from Gerrit's REST API
     #
@@ -109,7 +108,7 @@ for change in args.gerrit_number:
 
     # Extract information from the JSON response
     project_name     = data['project']
-    gerrit_number    = data['_number']
+    change_number    = data['_number']
     current_revision = data['revisions'][data['current_revision']]
     patch_number     = current_revision['_number']
     fetch_url        = current_revision['fetch']['http']['url']
@@ -138,28 +137,26 @@ for change in args.gerrit_number:
     # Check that the project path exists
     if not os.path.isdir(project_path):
         if args.ignore_missing:
-            sys.stderr.write('WARNING: Skipping %d since there is no project directory: %s' % (gerrit_number, project))
+            sys.stderr.write('WARNING: Skipping %d since there is no project directory: %s' % (change_number, project_path))
             next;
         else:
-            sys.stderr.write('ERROR: For %d, there is no project directory: %s' % (gerrit_number, project))
+            sys.stderr.write('ERROR: For %d, there is no project directory: %s' % (change_number, project_path))
             sys.exit(1)
 
     # If --start-branch is given, create the branch (more than once per path is okay; repo ignores gracefully)
     if args.start_branch:
-        cmd = '%s start %s %s' % (repo_bin, args.start_branch[0], project_path)
-        execute_cmd(cmd)
+        os.system('%s start %s %s' % (repo_bin, args.start_branch[0], project_path))
 
     # Print out some useful info
     if not args.quiet:
-        print('--> subject:       "%s"' % subject)
-        print('--> project path:  %s' % project_path)
-        print('--> gerrit number: %d (patch %d)' % (gerrit_number, patch_number))
-        print('--> author:        %s <%s> %s' % (author_name, author_email, author_date))
-        print('--> committer:     %s <%s> %s' % (committer_name, committer_email, committer_date))
+        print('--> Subject:       "%s"' % subject)
+        print('--> Project path:  %s' % project_path)
+        print('--> Change number: %d (Patch Set %d)' % (change_number, patch_number))
+        print('--> Author:        %s <%s> %s' % (author_name, author_email, author_date))
+        print('--> Committer:     %s <%s> %s' % (committer_name, committer_email, committer_date))
 
     # Perform the cherry-pick
-    cmd = 'cd %s && git fetch %s %s && git cherry-pick FETCH_HEAD' % (project_path, fetch_url, fetch_ref)
-    execute_cmd(cmd)
+    os.system('cd %s && git fetch %s %s && git cherry-pick FETCH_HEAD' % (project_path, fetch_url, fetch_ref))
     if not args.quiet:
         print('')
 
